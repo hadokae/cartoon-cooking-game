@@ -1,0 +1,528 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Fredoka", system-ui, -apple-system, sans-serif;
+  --font-title: "Space Grotesk", "Titan One", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+:root {
+  --theme-color-primary: #D83A43;
+  --theme-color-dark: #B82834;
+  --theme-color-accent: #F2B233;
+  --theme-color-accent-dark: #D7921A;
+  --theme-color-hat: #F6F3EF;
+  --theme-color-piel: #EFAE76;
+  --theme-color-extra: #6A4328;
+}
+
+/* Full-bleed reset for edge-to-edge on all devices */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Base custom resets for Minimal Grind Fiction UI */
+body {
+  background-color: #0A1118;
+  color: #0A1118; /* Stark contrast deep dark charcoal */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  position: relative;
+}
+
+/* Subtle eye-safe tactile grunge/zine noise grain overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  opacity: 0.055; /* Eye-safe tactile grain opacity */
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Custom Grid & Scanlines for Technical Grind-Fiction Screens */
+.grind-grid-bg {
+  background-image: radial-gradient(rgba(120, 136, 150, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Custom animations */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(230, 161, 92, 0.35);
+  }
+}
+
+@keyframes flameSway {
+  0%, 100% {
+    transform: rotate(-3deg) scale(0.95);
+  }
+  50% {
+    transform: rotate(3deg) scale(1.05);
+  }
+}
+
+@keyframes specularShine {
+  0% { left: -150%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}
+
+@keyframes logoFall {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-120vh) scale(0.5) rotate(-10deg); 
+  }
+  60% { 
+    opacity: 1; 
+    transform: translateY(10px) scale(1.05) rotate(2deg); 
+  }
+  75% { 
+    transform: translateY(-5px) scale(0.98) rotate(-1deg); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1) rotate(0deg); 
+  }
+}
+
+@keyframes logoFrameFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Custom Grind Fiction Panel & Window Layouts */
+@layer utilities {
+  .dark-game-container {
+    background-color: #FAF9F5; /* Warm soft vanilla cream */
+    border: 3px solid #3E3B34; /* Stark charcoal border */
+    border-radius: 4px;
+    box-shadow: 6px 6px 0px #0A1118;
+  }
+
+  .dark-subpanel {
+    background-color: #F3EFE9; /* Warm stone cream */
+    border: 2px solid #3E3B34;
+    border-radius: 2px;
+    box-shadow: 3px 3px 0px #0A1118;
+  }
+
+  .dark-inner-panel {
+    background-color: #FDFBF7; /* Lighter soft linen */
+    border: 1px solid #EAE4D9;
+    border-radius: 2px;
+  }
+
+  /* 3D Pressed Button Effects rewritten to Tactile Minimalist Inversions */
+  .cartoon-btn-orange {
+    background-color: #E8C1A0 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-orange:hover {
+    background-color: #0A1118 !important;
+    color: #E8C1A0 !important;
+    border-color: #E8C1A0 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-orange:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-green {
+    background-color: #B7C9B3 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-green:hover {
+    background-color: #0A1118 !important;
+    color: #B7C9B3 !important;
+    border-color: #B7C9B3 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-green:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-yellow {
+    background-color: #EEDC9A !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-yellow:hover {
+    background-color: #0A1118 !important;
+    color: #EEDC9A !important;
+    border-color: #EEDC9A !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-yellow:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-blue {
+    background-color: #A9C2C9 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-blue:hover {
+    background-color: #0A1118 !important;
+    color: #A9C2C9 !important;
+    border-color: #A9C2C9 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-blue:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-purple {
+    background-color: #C5B6CE !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-purple:hover {
+    background-color: #0A1118 !important;
+    color: #C5B6CE !important;
+    border-color: #C5B6CE !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-purple:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-rose {
+    background-color: #E3AFA9 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-rose:hover {
+    background-color: #0A1118 !important;
+    color: #E3AFA9 !important;
+    border-color: #E3AFA9 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-rose:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-red {
+    background-color: #F5B0A6 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-red:hover {
+    background-color: #0A1118 !important;
+    color: #F5B0A6 !important;
+    border-color: #F5B0A6 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-red:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  .cartoon-btn-neutral {
+    background-color: #C4BEB5 !important;
+    background-image: none !important;
+    border: 2px solid #3E3B34 !important;
+    border-bottom: 2px solid #3E3B34 !important;
+    border-radius: 2px !important;
+    box-shadow: 3px 3px 0px #0A1118 !important;
+    color: #0A1118 !important;
+    text-shadow: none !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 800 !important;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-neutral:hover {
+    background-color: #0A1118 !important;
+    color: #C4BEB5 !important;
+    border-color: #C4BEB5 !important;
+    box-shadow: 1px 1px 0px #0A1118 !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-neutral:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(3px, 3px) !important;
+  }
+
+  /* EPIC VOLUMETRIC PLAY BUTTON converted to Sharp Tech-Grind Stencil Button */
+  .cartoon-btn-play {
+    position: relative;
+    background-color: #E67E22 !important;
+    background-image: none !important;
+    border: 3px solid #3E3B34 !important;
+    border-bottom: 3px solid #3E3B34 !important;
+    border-radius: 4px !important;
+    box-shadow: 4px 4px 0px #0A1118 !important;
+    color: #FFFFFF !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    text-shadow: none !important;
+    animation: none !important;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.1s ease !important;
+  }
+  .cartoon-btn-play:hover {
+    background-color: #0A1118 !important;
+    color: #FFAE58 !important;
+    border-color: #FFAE58 !important;
+    box-shadow: 2px 2px 0px #0A1118, 0 0 15px rgba(230, 161, 92, 0.2) !important;
+    transform: translate(2px, 2px) !important;
+  }
+  .cartoon-btn-play:active {
+    box-shadow: 0px 0px 0px #0A1118 !important;
+    transform: translate(4px, 4px) !important;
+  }
+  .cartoon-btn-play::after {
+    display: none !important;
+  }
+
+  /* Selected Card premium states */
+  .selected-cartoon-card {
+    border-color: #3E3B34 !important;
+    background-color: #F3EFE9 !important;
+    background-image: none !important;
+    box-shadow: 4px 4px 0px #E6A15C, inset 0 0 10px rgba(0,0,0,0.05) !important;
+    transform: scale(1.01) !important;
+    border-radius: 2px !important;
+    z-index: 10;
+  }
+  .selected-cartoon-card::before {
+    display: none !important;
+  }
+
+  /* Text Comic Stroke outline disabled for a cleaner minimal aesthetic */
+  .comic-stroke, .comic-stroke-heavy, .comic-stroke-light, .comic-stroke-orange {
+    -webkit-text-stroke: 0px !important;
+    text-shadow: none !important;
+  }
+
+  /* Crisp, non-blurry texts with absolute high contrast for white & orange */
+  .crisp-white-text {
+    color: #FFFFFF !important;
+    text-shadow: 1.5px 1.5px 0px #0A1118 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .crisp-orange-text {
+    color: #FFAE58 !important;
+    text-shadow: 1.5px 1.5px 0px #0A1118 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  /* Technical borders */
+  .cartoon-border-gold {
+    border: 3px solid #3E3B34;
+    outline: none;
+    border-radius: 2px;
+    box-shadow: 4px 4px 0px #0A1118;
+  }
+
+  .cartoon-border-wood {
+    border: 4px solid #3E3B34;
+    outline: none;
+    border-radius: 2px;
+    box-shadow: 5px 5px 0px #0A1118;
+  }
+
+  .cartoon-panel-title {
+    background-color: #E8C1A0;
+    border: 2px solid #3E3B34;
+    border-radius: 2px;
+    box-shadow: 2px 2px 0px #0A1118;
+  }
+}
+
+/* Custom Scrollbar styled for tech console */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A1118;
+}
+::-webkit-scrollbar-thumb {
+  background: #2E3A46;
+  border-radius: 0px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #E6A15C;
+}
+
+@media (max-height: 680px) {
+  .short-hidden {
+    display: none !important;
+  }
+}
+
+/* PERSONA GAME LUST AND CRAZINESS STYLING */
+.persona-stripes-bg {
+  background-image: repeating-linear-gradient(45deg, #0A1118, #0A1118 12px, #141D26 12px, #141D26 24px);
+}
+
+.persona-red-stripes {
+  background-image: repeating-linear-gradient(-45deg, var(--theme-color-primary), var(--theme-color-primary) 15px, var(--theme-color-dark) 15px, var(--theme-color-dark) 30px);
+}
+
+.persona-slash-divider {
+  position: relative;
+  overflow: hidden;
+}
+.persona-slash-divider::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: repeating-linear-gradient(135deg, rgba(230, 126, 34, 0.15), rgba(230, 126, 34, 0.15) 4px, transparent 4px, transparent 8px);
+  pointer-events: none;
+}
+
+.persona-skew-btn {
+  transform: skewX(-7deg);
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.persona-skew-btn > * {
+  transform: skewX(7deg);
+}
+.persona-skew-btn:hover {
+  transform: skewX(-9deg) translateY(-2px) scale(1.02);
+  box-shadow: 4px 4px 0px var(--theme-color-primary) !important;
+  background-color: var(--theme-color-primary) !important;
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+.persona-skew-btn:active {
+  transform: skewX(-5deg) translateY(1px);
+  box-shadow: 1px 1px 0px var(--theme-color-primary) !important;
+}
+
+.persona-badge {
+  transform: rotate(-3deg) skewX(-10deg);
+  background-color: var(--theme-color-primary);
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  text-transform: uppercase;
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 2px 2px 0px #0A1118;
+}
+
+.persona-card {
+  border: 2px solid #E67E22;
+  box-shadow: 5px 5px 0px #0A1118, -3px -3px 0px var(--theme-color-primary);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.persona-card:hover {
+  transform: translate(-2px, -2px) rotate(0.5deg);
+  box-shadow: 7px 7px 0px var(--theme-color-primary), -5px -5px 0px #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+.persona-hud-panel {
+  border: 2.5px solid #FFFFFF;
+  box-shadow: 4px 4px 0px var(--theme-color-primary), -3px -3px 0px #0A1118;
+}
+
