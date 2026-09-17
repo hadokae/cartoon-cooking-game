@@ -1,0 +1,119 @@
+[HTTP] Server running on http://localhost:3000
+[WS] New client connected
+[WS] Created new room CVCTR (web, maxPlayers: 2)
+[WS] New client connected
+[WS] Player chef_q0npa1z7e explicitly left room CVCTR. Performing immediate cleanup.
+[WS] Created new room 0AU73 (web, maxPlayers: 2)
+[WS] Player chef_q0npa1z7e explicitly left room 0AU73. Performing immediate cleanup.
+[WS] Room 0AU73 empty. Destroying.
+[WS] Created new room CR1WR (web, maxPlayers: 2)
+[WS] Player chef_q0npa1z7e explicitly left room CR1WR. Performing immediate cleanup.
+[WS] Room CR1WR empty. Destroying.
+[WS] Player chef_b1dmaf3da explicitly left room CVCTR. Performing immediate cleanup.
+[WS] Room CVCTR empty. Destroying.
+[WS] Created new room IW81A (web, maxPlayers: 2)
+[WS] Player chef_b1dmaf3da explicitly left room IW81A. Performing immediate cleanup.
+[WS] Room IW81A empty. Destroying.
+[WS] Created new room 2VOXZ (web, maxPlayers: 2)
+[WS] Player chef_b1dmaf3da explicitly left room 2VOXZ. Performing immediate cleanup.
+[WS] Room 2VOXZ empty. Destroying.
+[WS] Client closed connection
+[2m3:11:47 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m3:11:50 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m3:11:50 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[WS] Client closed connection
+[2m3:19:49 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m3:19:52 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m3:19:52 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m10:20:51 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m10:20:58 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m10:20:59 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m10:22:21 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx[22m
+[2m10:22:23 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m10:22:23 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m10:22:26 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx[22m
+[2m10:22:27 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m10:22:27 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[WS] New client connected
+[WS] Created new room PDVIQ (web, maxPlayers: 2)
+[WS] New client connected
+[WS] Player chef_9h0a4shlj explicitly left room PDVIQ. Performing immediate cleanup.
+[WS] Created new room WRSPB (web, maxPlayers: 2)
+[WS] Player chef_9h0a4shlj explicitly left room WRSPB. Performing immediate cleanup.
+[WS] Room WRSPB empty. Destroying.
+[WS] Created new room PLSWV (web, maxPlayers: 2)
+[WS] Player chef_9h0a4shlj explicitly left room PLSWV. Performing immediate cleanup.
+[WS] Room PLSWV empty. Destroying.
+[WS] Player chef_yirvuqcow explicitly left room PDVIQ. Performing immediate cleanup.
+[WS] Room PDVIQ empty. Destroying.
+[WS] Created new room TU105 (web, maxPlayers: 2)
+[WS] Player chef_yirvuqcow explicitly left room TU105. Performing immediate cleanup.
+[WS] Room TU105 empty. Destroying.
+[WS] Created new room XC1CA (web, maxPlayers: 2)
+[WS] Player chef_yirvuqcow explicitly left room XC1CA. Performing immediate cleanup.
+[WS] Room XC1CA empty. Destroying.
+[WS] Created new room 6ZV0Y (web, maxPlayers: 2)
+[WS] Player chef_9h0a4shlj explicitly left room 6ZV0Y. Performing immediate cleanup.
+[WS] Room 6ZV0Y empty. Destroying.
+[WS] Created new room ZNO72 (web, maxPlayers: 2)
+[WS] Player chef_9h0a4shlj explicitly left room ZNO72. Performing immediate cleanup.
+[WS] Created new room DYMFN (web, maxPlayers: 2)
+[WS] Player chef_9h0a4shlj explicitly left room DYMFN. Performing immediate cleanup.
+[WS] Room DYMFN empty. Destroying.
+[WS] Created new room WNRPN (web, maxPlayers: 2)
+[WS] Player chef_yirvuqcow explicitly left room ZNO72. Performing immediate cleanup.
+[WS] Room ZNO72 empty. Destroying.
+[WS] Created new room OV7DM (web, maxPlayers: 2)
+[WS] Player chef_yirvuqcow explicitly left room OV7DM. Performing immediate cleanup.
+[WS] Room OV7DM empty. Destroying.
+[WS] Created new room 9C3AA (web, maxPlayers: 2)
+[WS] Player chef_yirvuqcow explicitly left room 9C3AA. Performing immediate cleanup.
+[WS] Room 9C3AA empty. Destroying.
+[WS] Player chef_9h0a4shlj explicitly left room WNRPN. Performing immediate cleanup.
+[WS] Host migrated to player chef_yirvuqcow
+[WS] Client closed connection
+[WS] Client closed connection
+[2m11:20:41 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:20:47 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:20:53 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:21:01 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/GameCanvas.tsx, /src/index.css[22m
+[2m11:21:12 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m11:21:21 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m11:21:41 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m11:21:58 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx[22m
+[WS] New client connected
+[WS] New client connected
+[WS] Created new room 9U1TP (web, maxPlayers: 2)
+[WS] Player chef_tc3xtffvv explicitly left room WNRPN. Performing immediate cleanup.
+[WS] Client closed connection
+[WS] Player chef_nhudtvc95 disconnected implicitly from room 9U1TP. Starting 30s grace period.
+[WS] Grace period expired. Cleaning up player chef_nhudtvc95 from room 9U1TP
+[WS] Room 9U1TP empty. Destroying.
+[2m11:38:45 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:38:45 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:42:00 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[WS] Player chef_tc3xtffvv explicitly left room WNRPN. Performing immediate cleanup.
+[2m11:44:32 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx, /src/App.tsx[22m
+[2m11:44:33 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m11:44:33 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m11:44:36 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx, /src/App.tsx[22m
+[2m11:44:38 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m11:44:38 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m11:44:42 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:44:42 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:46:27 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:46:27 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[WS] New client connected
+[2m11:46:32 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:46:32 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m11:46:40 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m11:46:40 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[WS] Client closed connection
+[WS] Client closed connection
+[2m11:46:45 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m11:46:45 p. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mserver.ts[22m
+[2m12:11:47 a. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m12:11:47 a. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/OnlineLobby.tsx, /src/index.css[22m
+[2m12:11:52 a. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/OnlineLobby.tsx, /src/components/GameCanvas.tsx, /src/App.tsx[22m
+[2m12:11:55 a. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [33mhmr invalidate [39m[2m/src/components/GameCanvas.tsx[22m Could not Fast Refresh ("isAndroidDevice" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m12:11:55 a. m.[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m

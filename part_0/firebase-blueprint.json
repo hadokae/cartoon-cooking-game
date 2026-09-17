@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "Lobby waiting room for matchmaking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "maxPlayers": { "type": "number" },
+        "status": { "type": "string", "enum": ["waiting", "loading", "playing", "finished"] },
+        "levelId": { "type": "number" },
+        "hostId": { "type": "string" },
+        "players": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "code", "isPublic", "maxPlayers", "status", "levelId", "hostId", "players", "createdAt"]
+    },
+    "PlayerState": {
+      "title": "PlayerState",
+      "description": "Dynamic movement and actions state of an active player",
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "vx": { "type": "number" },
+        "vy": { "type": "number" },
+        "angle": { "type": "number" },
+        "isChopping": { "type": "boolean" },
+        "isWashing": { "type": "boolean" },
+        "heldItem": { "type": "object" },
+        "lastUpdated": { "type": "number" }
+      },
+      "required": ["x", "y", "vx", "vy", "angle", "isChopping", "isWashing"]
+    },
+    "StationState": {
+      "title": "StationState",
+      "description": "Dynamic status of an interactive kitchen counter",
+      "type": "object",
+      "properties": {
+        "gridX": { "type": "number" },
+        "gridY": { "type": "number" },
+        "heldItem": { "type": "object" },
+        "progress": { "type": "number" },
+        "isWarning": { "type": "boolean" },
+        "lastUpdated": { "type": "number" }
+      },
+      "required": ["gridX", "gridY", "progress", "isWarning"]
+    },
+    "GameStateSync": {
+      "title": "GameStateSync",
+      "description": "Synchronized authoritative level parameters like score and time",
+      "type": "object",
+      "properties": {
+        "score": { "type": "number" },
+        "timeRemaining": { "type": "number" },
+        "activeOrders": { "type": "array" },
+        "isGameOver": { "type": "boolean" },
+        "isPaused": { "type": "boolean" },
+        "lastUpdated": { "type": "number" }
+      },
+      "required": ["score", "timeRemaining", "activeOrders", "isGameOver", "isPaused"]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": " Matchmaking rooms list "
+    },
+    "/rooms/{roomId}/playersState/{playerId}": {
+      "schema": "PlayerState",
+      "description": " Real-time positions and motion vectors of co-op players "
+    },
+    "/rooms/{roomId}/stationsState/{stationKey}": {
+      "schema": "StationState",
+      "description": " Real-time inventory and chopping/washing progress "
+    },
+    "/rooms/{roomId}/gameState/{gameStateKey}": {
+      "schema": "GameStateSync",
+      "description": " Synchronized level timers, order queues, and score indicators "
+    }
+  }
+}

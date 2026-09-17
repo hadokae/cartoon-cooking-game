@@ -1,0 +1,6 @@
+{
+  "name": "Cartoon Cooking Game",
+  "description": "Un emocionante videojuego de cocina cooperativo y de gestión de tiempo al estilo Overcooked, con simpáticos gráficos estilo cartoon, múltiples niveles, sonido arcade interactivo y modo cooperativo local en un solo teclado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper to validate basic IDs
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    // Lobby room rules
+    match /rooms/{roomId} {
+      allow read: if true; // anyone can fetch room list or join via code
+      allow create: if true;
+      allow update, delete: if true;
+
+      // Subcollection for player positions and vectors
+      match /playersState/{playerId} {
+        allow read, write: if true;
+      }
+
+      // Subcollection for kitchen stations contents and progress
+      match /stationsState/{stationKey} {
+        allow read, write: if true;
+      }
+
+      // Subcollection for authoritative level parameters (score, orders, time)
+      match /gameState/{gameStateKey} {
+        allow read: if true;
+        allow write: if request.resource.data.writerId == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostId;
+      }
+    }
+  }
+}
