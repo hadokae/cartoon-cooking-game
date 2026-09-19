@@ -467,6 +467,22 @@ wss.on('connection', (ws: WebSocket) => {
             stationGrabTimestamps.set(grabKey, Date.now());
           }
 
+          // Detect stale placement: item went from null to non-null, but a grab happened recently
+          // This handles the race where Player 2's placement arrives AFTER Player 1's pickup
+          const isPlacementAction = !prevStation?.heldItem && stationState.heldItem;
+          if (isPlacementAction) {
+            const lastGrabTime = stationGrabTimestamps.get(grabKey) || 0;
+            if (Date.now() - lastGrabTime < GRAB_COOLDOWN_MS) {
+              // A grab just happened on this station — this placement is stale (from before the grab)
+              ws.send(JSON.stringify({
+                type: 'STATION_CONFLICT',
+                payload: { key, correctState: prevStation }
+              }));
+              console.log(`[WS] Stale placement rejected for station ${key} by ${info.playerId} (recent grab on station)`);
+              return;
+            }
+          }
+
           // Override lastUpdated with server time to solve system clock drift issues across clients
           stationState.lastUpdated = Date.now();
 
