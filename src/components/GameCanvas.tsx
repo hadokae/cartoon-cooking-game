@@ -659,6 +659,7 @@ export default function GameCanvas({
 
   const playerTimestampsRef = useRef<{ [pId: string]: number }>({});
   const stationTimestampsRef = useRef<{ [key: string]: number }>({});
+  const stationVersionsRef = useRef<{ [key: string]: number }>({});
   const lastGrabTimeRef = useRef<number>(0);
   const lastDashTimeRef = useRef<number>(0);
 
@@ -668,8 +669,9 @@ export default function GameCanvas({
       const key = `${station.gridX}_${station.gridY}`;
       const now = Date.now();
       station.lastUpdated = now;
-      stationTimestampsRef.current[key] = now; // Guard local client from stale in-flight update overclobbering
-      multiplayerClient.updateStationState(key, station);
+      stationTimestampsRef.current[key] = now;
+      const clientVersion = stationVersionsRef.current[key] || 0;
+      multiplayerClient.updateStationState(key, { ...station, clientVersion });
     } catch (e) {
       console.error("Error updating station state:", e);
     }
@@ -1304,6 +1306,11 @@ export default function GameCanvas({
         }
         stationTimestampsRef.current[key] = incomingTime || Date.now();
 
+        // Store server version for optimistic concurrency
+        if (data.stationState.serverVersion !== undefined) {
+          stationVersionsRef.current[key] = data.stationState.serverVersion;
+        }
+
         const prevItemType = station.heldItem?.type;
         const nextItemType = data.stationState.heldItem?.type;
 
@@ -1348,8 +1355,8 @@ export default function GameCanvas({
     if (gameMode !== 'ONLINE' || !lobbyId) return;
 
     const unsubscribe = multiplayerClient.onStationConflict((data) => {
-      const { key, correctState } = data;
-      console.log('[CONFLICT] Duplicate grab detected for station:', key, 'reverting local chef held item');
+      const { key, correctState, serverVersion } = data;
+      console.log('[CONFLICT] Station conflict received for key:', key, 'reverting to server state');
 
       // Revert the station to the correct server state
       const station = stationsRef.current.find(s => s.gridX === correctState.gridX && s.gridY === correctState.gridY);
@@ -1358,6 +1365,12 @@ export default function GameCanvas({
         station.progress = correctState.progress;
         station.isWarning = correctState.isWarning || false;
         stationTimestampsRef.current[key] = Date.now();
+        // Update to server's version so our next push reflects the correct baseline
+        if (serverVersion !== undefined) {
+          stationVersionsRef.current[key] = serverVersion;
+        } else {
+          stationVersionsRef.current[key] = (stationVersionsRef.current[key] || 0) + 1;
+        }
       }
 
       // Clear the local chef's held item (they grabbed an item someone else already took)
@@ -1496,6 +1509,12 @@ export default function GameCanvas({
             station.isWarning = saved.isWarning || false;
             station.lastSyncedProgress = saved.progress || 0;
           }
+        });
+      }
+      // Restore station versions from room data
+      if (room && (room as any).stationVersions) {
+        Object.entries((room as any).stationVersions).forEach(([key, ver]) => {
+          stationVersionsRef.current[key] = ver as number;
         });
       }
     }
@@ -2847,7 +2866,7 @@ export default function GameCanvas({
       }
 
       // Cap horizontal drag velocities
-      const maxSpeed = 3.15;
+      const maxSpeed = 3.5;
       const currentSpeed = Math.sqrt(chef.vx * chef.vx + chef.vy * chef.vy);
       if (currentSpeed > maxSpeed) {
         // Only cap back slowly to allow high dash speeds
@@ -3127,22 +3146,47 @@ export default function GameCanvas({
         const distChef = Math.hypot(myChef.x - other.x, myChef.y - other.y);
         if (distChef < 48) {
           const overlap = 48 - distChef;
-          const angle = Math.atan2(myChef.y - other.y, myChef.x - other.x);
-          // Push local chef gently out of the remote player, but don't modify the remote player's coordinates
-          myChef.x += Math.cos(angle) * (overlap / 2);
-          myChef.y += Math.sin(angle) * (overlap / 2);
+          const angle = Math.atan2(other.y - myChef.y, other.x - myChef.x);
+          const mySpeed = Math.hypot(myChef.vx, myChef.vy);
+          const otherSpeed = Math.hypot(other.vx, other.vy);
+          const knockForce = overlap * 0.6;
+          if (mySpeed >= otherSpeed) {
+            // Local chef is faster — push other back
+            other.x += Math.cos(angle) * knockForce;
+            other.y += Math.sin(angle) * knockForce;
+            other.vx += Math.cos(angle) * (mySpeed * 0.5);
+            other.vy += Math.sin(angle) * (mySpeed * 0.5);
+          } else {
+            // Remote chef is faster — push local back
+            myChef.x -= Math.cos(angle) * knockForce;
+            myChef.y -= Math.sin(angle) * knockForce;
+            myChef.vx -= Math.cos(angle) * (otherSpeed * 0.5);
+            myChef.vy -= Math.sin(angle) * (otherSpeed * 0.5);
+          }
         }
       });
     } else if (gameMode === 'COOP') {
-      // Collision check between P1 and P2! (Push away gently - increased threshold from 38 to 48)
+      // Collision check between P1 and P2 — faster chef keeps going, slower gets knocked back
       const distChef = Math.hypot(p1Ref.current.x - p2Ref.current.x, p1Ref.current.y - p2Ref.current.y);
       if (distChef < 48) {
         const overlap = 48 - distChef;
-        const angle = Math.atan2(p1Ref.current.y - p2Ref.current.y, p1Ref.current.x - p2Ref.current.x);
-        p1Ref.current.x += Math.cos(angle) * (overlap / 2);
-        p1Ref.current.y += Math.sin(angle) * (overlap / 2);
-        p2Ref.current.x -= Math.cos(angle) * (overlap / 2);
-        p2Ref.current.y -= Math.sin(angle) * (overlap / 2);
+        const angle = Math.atan2(p2Ref.current.y - p1Ref.current.y, p2Ref.current.x - p1Ref.current.x);
+        const speed1 = Math.hypot(p1Ref.current.vx, p1Ref.current.vy);
+        const speed2 = Math.hypot(p2Ref.current.vx, p2Ref.current.vy);
+        const knockForce = overlap * 0.6;
+        if (speed1 >= speed2) {
+          // P1 is faster — P2 gets knocked back
+          p2Ref.current.x += Math.cos(angle) * knockForce;
+          p2Ref.current.y += Math.sin(angle) * knockForce;
+          p2Ref.current.vx += Math.cos(angle) * (speed1 * 0.5);
+          p2Ref.current.vy += Math.sin(angle) * (speed1 * 0.5);
+        } else {
+          // P2 is faster — P1 gets knocked back
+          p1Ref.current.x -= Math.cos(angle) * knockForce;
+          p1Ref.current.y -= Math.sin(angle) * knockForce;
+          p1Ref.current.vx -= Math.cos(angle) * (speed2 * 0.5);
+          p1Ref.current.vy -= Math.sin(angle) * (speed2 * 0.5);
+        }
       }
     } else {
       // Solo Mode: no collision between active chef and inactive static chef
