@@ -3597,7 +3597,7 @@ export default function GameCanvas({
             const prevProgress = station.lastSyncedProgress || 0;
             if (station.progress === 0 || Math.abs(station.progress - prevProgress) >= 4) {
               station.lastSyncedProgress = station.progress;
-              pushStationUpdate(station);
+              // FIX: Removed pushStationUpdate to prevent stale updates from overwriting guest pickups
             }
           }
         }
