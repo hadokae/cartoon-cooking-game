@@ -37,6 +37,7 @@ interface Room {
   gameState: any;
   playersState: { [playerId: string]: any };
   stationsState: { [key: string]: any };
+  stationVersions: { [key: string]: number };
 }
 
 const rooms: { [roomId: string]: Room } = {};
@@ -195,7 +196,8 @@ wss.on('connection', (ws: WebSocket) => {
               chatMessages: [],
               gameState: null,
               playersState: {},
-              stationsState: {}
+              stationsState: {},
+              stationVersions: {}
             };
             rooms[newCode] = targetRoom;
             console.log(`[WS] Created new room ${newCode} (${matchType}, maxPlayers: ${requestedMax}). Player ${playerId} is host.`);
@@ -378,6 +380,7 @@ wss.on('connection', (ws: WebSocket) => {
           room.gameState = null;
           room.playersState = {};
           room.stationsState = {};
+          room.stationVersions = {};
           for (const pid in room.players) {
             room.players[pid].isReady = false;
           }
@@ -442,51 +445,32 @@ wss.on('connection', (ws: WebSocket) => {
         case 'UPDATE_STATION_STATE': {
           const info = socketData.get(ws);
           if (!info) return;
-          const { key, stationState } = payload;
+          const { key, stationState, clientVersion } = payload;
           const room = rooms[info.roomId];
           if (!room) return;
 
-          const prevStation = room.stationsState[key];
-          const grabKey = `${info.roomId}:${key}`;
-
-          // Detect grab action: item went from non-null to null
-          const isGrabAction = prevStation?.heldItem && !stationState.heldItem;
-
-          if (isGrabAction) {
-            const lastGrabTime = stationGrabTimestamps.get(grabKey) || 0;
-            if (Date.now() - lastGrabTime < GRAB_COOLDOWN_MS) {
-              // Another grab happened too recently — reject this duplicate grab
-              ws.send(JSON.stringify({
-                type: 'STATION_CONFLICT',
-                payload: { key, correctState: prevStation }
-              }));
-              console.log(`[WS] Duplicate grab rejected for station ${key} by ${info.playerId} (cooldown active)`);
-              return;
-            }
-            // Record this grab timestamp
-            stationGrabTimestamps.set(grabKey, Date.now());
+          // Version-based conflict detection: reject stale updates
+          const currentVersion = room.stationVersions[key] || 0;
+          if (clientVersion !== undefined && clientVersion < currentVersion) {
+            // This update is based on an old version — reject and send correct state back
+            const correctState = room.stationsState[key] || {};
+            ws.send(JSON.stringify({
+              type: 'STATION_CONFLICT',
+              payload: { key, correctState, serverVersion: currentVersion }
+            }));
+            console.log(`[WS] Stale v${clientVersion} update rejected for station ${key} (server is v${currentVersion}) by ${info.playerId}`);
+            return;
           }
 
-          // Detect stale placement: item went from null to non-null, but a grab happened recently
-          // This handles the race where Player 2's placement arrives AFTER Player 1's pickup
-          const isPlacementAction = !prevStation?.heldItem && stationState.heldItem;
-          if (isPlacementAction) {
-            const lastGrabTime = stationGrabTimestamps.get(grabKey) || 0;
-            if (Date.now() - lastGrabTime < GRAB_COOLDOWN_MS) {
-              // A grab just happened on this station — this placement is stale (from before the grab)
-              ws.send(JSON.stringify({
-                type: 'STATION_CONFLICT',
-                payload: { key, correctState: prevStation }
-              }));
-              console.log(`[WS] Stale placement rejected for station ${key} by ${info.playerId} (recent grab on station)`);
-              return;
-            }
-          }
-
-          // Override lastUpdated with server time to solve system clock drift issues across clients
+          // Override lastUpdated with server time
           stationState.lastUpdated = Date.now();
 
-          // Auto-release lock after successful update
+          // Increment version
+          const newVersion = currentVersion + 1;
+          room.stationVersions[key] = newVersion;
+          stationState.serverVersion = newVersion;
+
+          // Auto-release lock
           releaseStationLock(info.roomId, key, info.playerId);
 
           room.stationsState[key] = stationState;
@@ -494,6 +478,7 @@ wss.on('connection', (ws: WebSocket) => {
             type: 'STATION_STATE_SYNC',
             payload: { key, stationState }
           }, ws);
+          console.log(`[WS] UPDATE_STATION_STATE accepted for ${key} by ${info.playerId} (v${currentVersion}→v${newVersion}), heldItem: ${stationState.heldItem?.type || 'null'}`);
           break;
         }
 
