@@ -32,6 +32,10 @@ type JoinSuccessListener = (data: { roomId: string; roleNum: number; isHost: boo
 type GameSyncListener = (gameState: any) => void;
 type PlayersSyncListener = (playersState: { [playerId: string]: any }) => void;
 type StationSyncListener = (data: { key: string; stationState: any }) => void;
+type StationLockResultListener = (data: { stationKey: string; granted: boolean }) => void;
+type StationConflictListener = (data: { key: string; correctState: any }) => void;
+type StationLockedListener = (data: { stationKey: string; lockedBy: string }) => void;
+type StationUnlockedListener = (data: { stationKey: string }) => void;
 type ErrorListener = (error: { message: string; code: string }) => void;
 
 class MultiplayerClient {
@@ -41,6 +45,10 @@ class MultiplayerClient {
   private gameSyncListeners = new Set<GameSyncListener>();
   private playersSyncListeners = new Set<PlayersSyncListener>();
   private stationSyncListeners = new Set<StationSyncListener>();
+  private stationLockResultListeners = new Set<StationLockResultListener>();
+  private stationConflictListeners = new Set<StationConflictListener>();
+  private stationLockedListeners = new Set<StationLockedListener>();
+  private stationUnlockedListeners = new Set<StationUnlockedListener>();
   private errorListeners = new Set<ErrorListener>();
   private onConnectCallback: (() => void) | null = null;
   private onDisconnectCallback: (() => void) | null = null;
@@ -112,6 +120,18 @@ class MultiplayerClient {
             break;
           case 'STATION_STATE_SYNC':
             this.stationSyncListeners.forEach(listener => listener(payload));
+            break;
+          case 'STATION_LOCK_RESULT':
+            this.stationLockResultListeners.forEach(listener => listener(payload));
+            break;
+          case 'STATION_LOCKED':
+            this.stationLockedListeners.forEach(listener => listener(payload));
+            break;
+          case 'STATION_CONFLICT':
+            this.stationConflictListeners.forEach(listener => listener(payload));
+            break;
+          case 'STATION_UNLOCKED':
+            this.stationUnlockedListeners.forEach(listener => listener(payload));
             break;
           case 'ERROR':
             this.errorListeners.forEach(listener => listener(payload));
@@ -232,6 +252,14 @@ class MultiplayerClient {
     this.send('UPDATE_STATION_STATE', { key, stationState });
   }
 
+  public lockStation(stationKey: string) {
+    this.send('LOCK_STATION', { stationKey });
+  }
+
+  public unlockStation(stationKey: string) {
+    this.send('UNLOCK_STATION', { stationKey });
+  }
+
   // Subscription APIs
   public onJoinSuccess(listener: JoinSuccessListener) {
     this.joinSuccessListeners.add(listener);
@@ -258,6 +286,26 @@ class MultiplayerClient {
     return () => this.stationSyncListeners.delete(listener);
   }
 
+  public onStationLockResult(listener: StationLockResultListener) {
+    this.stationLockResultListeners.add(listener);
+    return () => this.stationLockResultListeners.delete(listener);
+  }
+
+  public onStationLocked(listener: StationLockedListener) {
+    this.stationLockedListeners.add(listener);
+    return () => this.stationLockedListeners.delete(listener);
+  }
+
+  public onStationConflict(listener: StationConflictListener) {
+    this.stationConflictListeners.add(listener);
+    return () => this.stationConflictListeners.delete(listener);
+  }
+
+  public onStationUnlocked(listener: StationUnlockedListener) {
+    this.stationUnlockedListeners.add(listener);
+    return () => this.stationUnlockedListeners.delete(listener);
+  }
+
   public onError(listener: ErrorListener) {
     this.errorListeners.add(listener);
     return () => this.errorListeners.delete(listener);
@@ -269,6 +317,10 @@ class MultiplayerClient {
     this.gameSyncListeners.clear();
     this.playersSyncListeners.clear();
     this.stationSyncListeners.clear();
+    this.stationLockResultListeners.clear();
+    this.stationConflictListeners.clear();
+    this.stationLockedListeners.clear();
+    this.stationUnlockedListeners.clear();
     this.errorListeners.clear();
   }
 }
