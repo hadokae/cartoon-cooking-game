@@ -3595,7 +3595,7 @@ export default function GameCanvas({
           if (isCooking) {
             // Push every 4% progress change, or when progress resets or item cooks (mutation)
             const prevProgress = station.lastSyncedProgress || 0;
-            if (station.progress === 0 || Math.abs(station.progress - prevProgress) >= 4) {
+if (station.progress === 0 || Math.abs(station.progress - prevProgress) >= 4) {
               station.lastSyncedProgress = station.progress;
               // FIX: Removed pushStationUpdate to prevent stale updates from overwriting guest pickups
             }
