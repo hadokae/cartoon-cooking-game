@@ -671,7 +671,11 @@ export default function GameCanvas({
       station.lastUpdated = now;
       stationTimestampsRef.current[key] = now;
       const clientVersion = stationVersionsRef.current[key] || 0;
-      multiplayerClient.updateStationState(key, { ...station, clientVersion });
+      const requestId = multiplayerClient.generateRequestId('station');
+      multiplayerClient.updateStationState(key, { ...station, clientVersion }, requestId);
+      // NOTE: Do NOT optimistically bump version here. The server will broadcast
+      // STATION_STATE_SYNC with the correct serverVersion. The client updates
+      // stationVersionsRef when it receives that broadcast.
     } catch (e) {
       console.error("Error updating station state:", e);
     }
@@ -1209,7 +1213,7 @@ export default function GameCanvas({
       }
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [gameMode, lobbyId, effectivePlayerId, lang]);
 
   // --- INITIALIZE ROOM STATE FROM CACHE ON MOUNT ---
@@ -1287,7 +1291,7 @@ export default function GameCanvas({
       applyPlayersState(playersState);
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [gameMode, lobbyId, effectivePlayerId, isHost]);
 
   // --- INCOMING KITCHEN STATIONS LISTENER ---
@@ -1298,13 +1302,13 @@ export default function GameCanvas({
       const key = data.key;
       const station = stationsRef.current.find(s => s.gridX === data.stationState.gridX && s.gridY === data.stationState.gridY);
       if (station) {
-        // Timestamp filtering to prevent out-of-order stale packets
-        const lastTime = stationTimestampsRef.current[key] || 0;
-        const incomingTime = data.stationState.lastUpdated || 0;
-        if (incomingTime && incomingTime < lastTime) {
-          return; // Ignore older station state
+        // VERSION GUARD: Ignore stale broadcasts that would revert a local grab/place.
+        const broadcastVersion = data.stationState.serverVersion;
+        const localVersion = stationVersionsRef.current[key] || 0;
+        if (broadcastVersion !== undefined && broadcastVersion < localVersion) {
+          console.log(`[SYNC] Ignoring stale broadcast v${broadcastVersion} (local is v${localVersion}) for station ${key}`);
+          return;
         }
-        stationTimestampsRef.current[key] = incomingTime || Date.now();
 
         // Store server version for optimistic concurrency
         if (data.stationState.serverVersion !== undefined) {
@@ -1314,25 +1318,24 @@ export default function GameCanvas({
         const prevItemType = station.heldItem?.type;
         const nextItemType = data.stationState.heldItem?.type;
 
+        // Accept full state from server — version check prevents stale updates
         station.heldItem = data.stationState.heldItem || null;
         station.progress = data.stationState.progress;
         station.isWarning = data.stationState.isWarning || false;
 
-        // Play feedback sounds for Guest clients matching Host authoritative state
-        if (!isHost) {
-          if (prevItemType && nextItemType && prevItemType !== nextItemType) {
-            const isCookingStation = station.type === 'grill' || station.type === 'stove_pot' || station.type === 'oven';
-            if (isCookingStation) {
-              if (nextItemType.includes('cocinado') || nextItemType.includes('cocida') || nextItemType.includes('horneada')) {
-                sounds.playDing();
-              } else if (nextItemType.includes('quemada') || nextItemType.includes('quemado')) {
-                sounds.playBurn();
-              }
+        // Play feedback sounds for all clients matching Host authoritative state
+        if (prevItemType && nextItemType && prevItemType !== nextItemType) {
+          const isCookingStation = station.type === 'grill' || station.type === 'stove_pot' || station.type === 'oven';
+          if (isCookingStation) {
+            if (nextItemType.includes('cocinado') || nextItemType.includes('cocida') || nextItemType.includes('horneada')) {
+              sounds.playDing();
+            } else if (nextItemType.includes('quemada') || nextItemType.includes('quemado')) {
+              sounds.playBurn();
             }
           }
-          if (station.isWarning && Math.random() < 0.05) {
-            sounds.playWarning();
-          }
+        }
+        if (station.isWarning && Math.random() < 0.05) {
+          sounds.playWarning();
         }
 
         // If Host receives a delivery station update with a plate, process it authoritatively
@@ -1347,7 +1350,7 @@ export default function GameCanvas({
       }
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [gameMode, lobbyId, isHost]);
 
   // --- STATION CONFLICT HANDLER (revert duplicate grabs) ---
@@ -1385,13 +1388,18 @@ export default function GameCanvas({
       }
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [gameMode, lobbyId]);
   useEffect(() => {
     if (gameMode !== 'ONLINE' || !lobbyId || !effectivePlayerId) return;
 
     const unsubscribe = multiplayerClient.onGameSync((data) => {
       if (data.writerId === effectivePlayerId) return;
+      
+      // State version ordering: ignore older versions
+      if (data.stateVersion !== undefined && data.stateVersion < multiplayerClient.serverStateVersion) {
+        return;
+      }
       
       setScore(data.score);
       scoreRef.current = data.score;
@@ -1411,8 +1419,65 @@ export default function GameCanvas({
       }
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [gameMode, lobbyId, isHost, isGameOver, isPaused, effectivePlayerId]);
+
+  // --- GAME SNAPSHOT HANDLER (authoritative state on join/reconnect) ---
+  useEffect(() => {
+    if (gameMode !== 'ONLINE' || !lobbyId || !effectivePlayerId) return;
+
+    const unsubscribe = multiplayerClient.onGameSnapshot((snapshot) => {
+      console.log('[GameCanvas] Applying GAME_SNAPSHOT, globalStateVersion:', snapshot.globalStateVersion);
+      
+      // Replace station states with authoritative server state
+      if (snapshot.stationsState) {
+        stationsRef.current.forEach((station) => {
+          const key = `${station.gridX}_${station.gridY}`;
+          const serverState = snapshot.stationsState[key];
+          if (serverState) {
+            station.heldItem = serverState.heldItem || null;
+            station.progress = serverState.progress || 0;
+            station.isWarning = serverState.isWarning || false;
+            station.lastSyncedProgress = serverState.progress || 0;
+          } else {
+            // Station not in server state - clear it
+            station.heldItem = null;
+            station.progress = 0;
+            station.isWarning = false;
+          }
+        });
+      }
+
+      // Replace station versions
+      if (snapshot.stationVersions) {
+        Object.entries(snapshot.stationVersions).forEach(([key, ver]) => {
+          stationVersionsRef.current[key] = ver as number;
+        });
+      }
+
+      // Apply game state from host
+      if (snapshot.gameState) {
+        setScore(snapshot.gameState.score || 0);
+        scoreRef.current = snapshot.gameState.score || 0;
+        if (!isHost) {
+          setTimeRemaining(snapshot.gameState.timeRemaining || effectiveTimeLimit);
+          gameTimeRef.current = snapshot.gameState.timeRemaining || effectiveTimeLimit;
+        }
+        setActiveOrders(snapshot.gameState.activeOrders || []);
+        ordersRef.current = snapshot.gameState.activeOrders || [];
+        if (snapshot.gameState.isGameOver) {
+          setIsGameOver(true);
+        }
+      }
+
+      // Apply player states
+      if (snapshot.playersState) {
+        applyPlayersState(snapshot.playersState);
+      }
+    });
+
+    return () => { unsubscribe(); };
+  }, [gameMode, lobbyId, effectivePlayerId, isHost]);
 
     // --- OUTGOING POSITION SYNC TICK ---
   useEffect(() => {
@@ -1827,7 +1892,7 @@ export default function GameCanvas({
   };
 
   // Trigger Chef Interactions
-  const handleChefAction = (chef: Chef, actionType: 'GRAB' | 'DASH') => {
+  const handleChefAction = async (chef: Chef, actionType: 'GRAB' | 'DASH') => {
     if (chef.isStunned) return;
 
     // 250ms action cooldown guard (critically prevents dual touch/mouse event double-triggering on mobile)
@@ -1858,6 +1923,20 @@ export default function GameCanvas({
       (s) => s.gridX === targetGridX && s.gridY === targetGridY
     );
 
+    // CRITICAL FIX: Await lock BEFORE executing grab to prevent duplication
+    if (actionType === 'GRAB' && gameMode === 'ONLINE' && station && multiplayerClient) {
+      const stationKey = `${station.gridX}_${station.gridY}`;
+      const lockGranted = await multiplayerClient.lockStation(stationKey);
+      if (!lockGranted) {
+        // Another player grabbed this first — cancel the grab
+        console.log('[LOCK] Grab cancelled for', stationKey, '- locked by another player');
+        lastGrabTimeRef.current = 0;
+        return;
+      }
+    }
+
+    
+
     if (actionType === 'DASH') {
       // High speed boost vector trigger
       chef.vx += dx * 10;
@@ -1876,8 +1955,6 @@ export default function GameCanvas({
 
     if (actionType === 'GRAB') {
       if (!station) {
-        // Drop on floor? No, on empty countertops. To prevent dumping on floor, let them drop if counter.
-        // If they drop an item and represent none, they just stand
         return;
       }
 
@@ -3458,7 +3535,7 @@ export default function GameCanvas({
     }
 
     // Cookers tick progress AUTOMATICALLY on placing item (doesn't need key hold)
-    // In ONLINE mode, ONLY the Host simulates the cooker progress to prevent drift and double events
+    // In ONLINE mode, ONLY the Host simulates the cooker progress
     if (gameMode !== 'ONLINE' || isHost) {
       stationsRef.current.forEach((station) => {
         // Stove/Grill automatic baking
@@ -3590,14 +3667,15 @@ export default function GameCanvas({
         }
 
         // If Host in ONLINE mode, push automatic station progress updates
+        // CRITICAL: Guests rely on these updates to see cooking bars and item mutations
         if (gameMode === 'ONLINE' && isHost) {
           const isCooking = (station.type === 'grill' || station.type === 'stove_pot' || station.type === 'oven') && station.heldItem;
           if (isCooking) {
-            // Push every 4% progress change, or when progress resets or item cooks (mutation)
+            // Push every 2% progress change, or when progress resets or item cooks (mutation)
             const prevProgress = station.lastSyncedProgress || 0;
-if (station.progress === 0 || Math.abs(station.progress - prevProgress) >= 4) {
+            if (station.progress === 0 || Math.abs(station.progress - prevProgress) >= 2) {
               station.lastSyncedProgress = station.progress;
-              // FIX: Removed pushStationUpdate to prevent stale updates from overwriting guest pickups
+              pushStationUpdate(station);
             }
           }
         }

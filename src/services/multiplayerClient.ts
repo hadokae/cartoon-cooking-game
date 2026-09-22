@@ -31,11 +31,13 @@ type RoomUpdateListener = (room: RoomData) => void;
 type JoinSuccessListener = (data: { roomId: string; roleNum: number; isHost: boolean; roomData: RoomData }) => void;
 type GameSyncListener = (gameState: any) => void;
 type PlayersSyncListener = (playersState: { [playerId: string]: any }) => void;
-type StationSyncListener = (data: { key: string; stationState: any }) => void;
+type StationSyncListener = (data: { key: string; stationState: any; stateVersion?: number }) => void;
 type StationLockResultListener = (data: { stationKey: string; granted: boolean }) => void;
-type StationConflictListener = (data: { key: string; correctState: any }) => void;
+type StationConflictListener = (data: { key: string; correctState: any; serverVersion?: number }) => void;
 type StationLockedListener = (data: { stationKey: string; lockedBy: string }) => void;
 type StationUnlockedListener = (data: { stationKey: string }) => void;
+type StationActionResultListener = (data: { requestId: string; success: boolean; stationKey: string; stationState?: any; reason?: string; stateVersion?: number }) => void;
+type GameSnapshotListener = (data: any) => void;
 type ErrorListener = (error: { message: string; code: string }) => void;
 
 class MultiplayerClient {
@@ -49,14 +51,18 @@ class MultiplayerClient {
   private stationConflictListeners = new Set<StationConflictListener>();
   private stationLockedListeners = new Set<StationLockedListener>();
   private stationUnlockedListeners = new Set<StationUnlockedListener>();
+  private stationActionResultListeners = new Set<StationActionResultListener>();
+  private gameSnapshotListeners = new Set<GameSnapshotListener>();
   private errorListeners = new Set<ErrorListener>();
   private onConnectCallback: (() => void) | null = null;
   private onDisconnectCallback: (() => void) | null = null;
 
   public isConnected = false;
   public lastRoomData: RoomData | null = null;
+  public serverStateVersion: number = 0;
   private reconnectInterval: any = null;
   private pendingJoin: (() => void) | null = null;
+  private requestIdCounter: number = 0;
 
   public connect(onConnect?: () => void, onDisconnect?: () => void) {
     if (onConnect !== undefined) this.onConnectCallback = onConnect;
@@ -119,6 +125,9 @@ class MultiplayerClient {
             this.playersSyncListeners.forEach(listener => listener(payload));
             break;
           case 'STATION_STATE_SYNC':
+            if (payload.stateVersion !== undefined && payload.stateVersion > this.serverStateVersion) {
+              this.serverStateVersion = payload.stateVersion;
+            }
             this.stationSyncListeners.forEach(listener => listener(payload));
             break;
           case 'STATION_LOCK_RESULT':
@@ -132,6 +141,16 @@ class MultiplayerClient {
             break;
           case 'STATION_UNLOCKED':
             this.stationUnlockedListeners.forEach(listener => listener(payload));
+            break;
+          case 'STATION_ACTION_RESULT':
+            if (payload.stateVersion !== undefined && payload.stateVersion > this.serverStateVersion) {
+              this.serverStateVersion = payload.stateVersion;
+            }
+            this.stationActionResultListeners.forEach(listener => listener(payload));
+            break;
+          case 'GAME_SNAPSHOT':
+            console.log('[MultiplayerClient] Received GAME_SNAPSHOT');
+            this.gameSnapshotListeners.forEach(listener => listener(payload));
             break;
           case 'ERROR':
             this.errorListeners.forEach(listener => listener(payload));
@@ -175,13 +194,15 @@ class MultiplayerClient {
 
   private send(type: string, payload?: any) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      if (type === 'UPDATE_PLAYER_STATE') {
-        console.log('[WS-SEND] UPDATE_PLAYER_STATE -> server, readyState:', this.socket.readyState);
-      }
       this.socket.send(JSON.stringify({ type, payload }));
     } else {
       console.warn(`[MultiplayerClient] Can't send ${type}, WebSocket not connected. readyState:`, this.socket?.readyState);
     }
+  }
+
+  public generateRequestId(prefix: string = 'action'): string {
+    this.requestIdCounter++;
+    return `${prefix}_${Date.now()}_${this.requestIdCounter}_${Math.random().toString(36).substring(2, 6)}`;
   }
 
   public joinLobby(playerId: string, playerName: string, matchType: 'web' | 'code', maxPlayers: number, inputCode?: string) {
@@ -248,12 +269,45 @@ class MultiplayerClient {
     this.send('UPDATE_PLAYER_STATE', playerState);
   }
 
-  public updateStationState(key: string, stationState: any) {
-    this.send('UPDATE_STATION_STATE', { key, stationState });
+  public updateStationState(key: string, stationState: any, requestId?: string) {
+    this.send('UPDATE_STATION_STATE', { key, stationState, requestId });
   }
 
-  public lockStation(stationKey: string) {
-    this.send('LOCK_STATION', { stationKey });
+  public stationAction(action: string, stationKey: string, item?: any, requestId?: string): Promise<any> {
+    return new Promise((resolve) => {
+      const rid = requestId || this.generateRequestId('station');
+      const timeout = setTimeout(() => {
+        this.stationActionResultListeners.delete(listener);
+        resolve({ success: false, reason: 'timeout' });
+      }, 2000);
+      const listener = (data: any) => {
+        if (data.requestId === rid) {
+          clearTimeout(timeout);
+          this.stationActionResultListeners.delete(listener);
+          resolve(data);
+        }
+      };
+      this.stationActionResultListeners.add(listener);
+      this.send('STATION_ACTION', { action, stationKey, item, requestId: rid });
+    });
+  }
+
+  public lockStation(stationKey: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.stationLockResultListeners.delete(listener);
+        resolve(false);
+      }, 500);
+      const listener = (data: { stationKey: string; granted: boolean }) => {
+        if (data.stationKey === stationKey) {
+          clearTimeout(timeout);
+          this.stationLockResultListeners.delete(listener);
+          resolve(data.granted);
+        }
+      };
+      this.stationLockResultListeners.add(listener);
+      this.send('LOCK_STATION', { stationKey });
+    });
   }
 
   public unlockStation(stationKey: string) {
@@ -306,6 +360,16 @@ class MultiplayerClient {
     return () => this.stationUnlockedListeners.delete(listener);
   }
 
+  public onStationActionResult(listener: StationActionResultListener) {
+    this.stationActionResultListeners.add(listener);
+    return () => this.stationActionResultListeners.delete(listener);
+  }
+
+  public onGameSnapshot(listener: GameSnapshotListener) {
+    this.gameSnapshotListeners.add(listener);
+    return () => this.gameSnapshotListeners.delete(listener);
+  }
+
   public onError(listener: ErrorListener) {
     this.errorListeners.add(listener);
     return () => this.errorListeners.delete(listener);
@@ -321,6 +385,8 @@ class MultiplayerClient {
     this.stationConflictListeners.clear();
     this.stationLockedListeners.clear();
     this.stationUnlockedListeners.clear();
+    this.stationActionResultListeners.clear();
+    this.gameSnapshotListeners.clear();
     this.errorListeners.clear();
   }
 }

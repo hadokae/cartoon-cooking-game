@@ -38,6 +38,8 @@ interface Room {
   playersState: { [playerId: string]: any };
   stationsState: { [key: string]: any };
   stationVersions: { [key: string]: number };
+  globalStateVersion: number;
+  processedRequestIds: Set<string>;
 }
 
 const rooms: { [roomId: string]: Room } = {};
@@ -197,7 +199,9 @@ wss.on('connection', (ws: WebSocket) => {
               gameState: null,
               playersState: {},
               stationsState: {},
-              stationVersions: {}
+              stationVersions: {},
+              globalStateVersion: 0,
+              processedRequestIds: new Set()
             };
             rooms[newCode] = targetRoom;
             console.log(`[WS] Created new room ${newCode} (${matchType}, maxPlayers: ${requestedMax}). Player ${playerId} is host.`);
@@ -254,6 +258,23 @@ wss.on('connection', (ws: WebSocket) => {
               roomData: targetRoom
             }
           }));
+
+          // If game is already playing, send a snapshot to the rejoining player
+          if (targetRoom.status === 'playing') {
+            ws.send(JSON.stringify({
+              type: 'GAME_SNAPSHOT',
+              payload: {
+                stationsState: targetRoom.stationsState,
+                stationVersions: targetRoom.stationVersions,
+                playersState: targetRoom.playersState,
+                gameState: targetRoom.gameState,
+                globalStateVersion: targetRoom.globalStateVersion,
+                levelId: targetRoom.levelId,
+                difficulty: targetRoom.difficulty
+              }
+            }));
+            console.log(`[WS][SERVER] Sent snapshot to rejoing player ${playerId} in room ${rId}`);
+          }
 
           broadcastToRoom(rId, { type: 'ROOM_UPDATED', payload: targetRoom });
           break;
@@ -361,11 +382,28 @@ wss.on('connection', (ws: WebSocket) => {
           if (!room || room.hostId !== info.playerId) return;
 
           room.status = 'playing';
+          room.globalStateVersion = 0;
+          room.processedRequestIds = new Set();
           // Reset players readiness so that when they eventually return to lobby, they aren't auto-ready
           for (const pid in room.players) {
             room.players[pid].isReady = false;
           }
           broadcastToRoom(info.roomId, { type: 'ROOM_UPDATED', payload: room });
+
+          // Send initial snapshot to all players
+          broadcastToRoom(info.roomId, {
+            type: 'GAME_SNAPSHOT',
+            payload: {
+              stationsState: room.stationsState,
+              stationVersions: room.stationVersions,
+              playersState: room.playersState,
+              gameState: room.gameState,
+              globalStateVersion: room.globalStateVersion,
+              levelId: room.levelId,
+              difficulty: room.difficulty
+            }
+          });
+          console.log(`[WS][SERVER] Game started in room ${info.roomId}. Snapshot sent.`);
           break;
         }
 
@@ -381,6 +419,8 @@ wss.on('connection', (ws: WebSocket) => {
           room.playersState = {};
           room.stationsState = {};
           room.stationVersions = {};
+          room.globalStateVersion = 0;
+          room.processedRequestIds = new Set();
           for (const pid in room.players) {
             room.players[pid].isReady = false;
           }
@@ -400,7 +440,8 @@ wss.on('connection', (ws: WebSocket) => {
           if (!room) return;
 
           room.gameState = payload;
-          broadcastToRoom(info.roomId, { type: 'GAME_SYNCED', payload }, ws);
+          room.globalStateVersion++;
+          broadcastToRoom(info.roomId, { type: 'GAME_SYNCED', payload: { ...payload, stateVersion: room.globalStateVersion } }, ws);
           break;
         }
 
@@ -414,7 +455,6 @@ wss.on('connection', (ws: WebSocket) => {
           payload.lastUpdated = Date.now();
 
           room.playersState[info.playerId] = payload;
-          console.log(`[WS] UPDATE_PLAYER_STATE from ${info.playerId} (role ${payload.roleNum}) pos: ${payload.x?.toFixed(0)},${payload.y?.toFixed(0)} -> broadcasting to room ${info.roomId}`);
           broadcastToRoom(info.roomId, {
             type: 'PLAYER_STATES_SYNC',
             payload: room.playersState
@@ -427,6 +467,7 @@ wss.on('connection', (ws: WebSocket) => {
           if (!info) return;
           const { stationKey } = payload;
           const granted = tryLockStation(info.roomId, stationKey, info.playerId);
+          console.log(`[WS][SERVER] LOCK_STATION ${stationKey} for ${info.playerId}: ${granted ? 'GRANTED' : 'DENIED'}`);
           ws.send(JSON.stringify({
             type: 'STATION_LOCK_RESULT',
             payload: { stationKey, granted }
@@ -445,20 +486,45 @@ wss.on('connection', (ws: WebSocket) => {
         case 'UPDATE_STATION_STATE': {
           const info = socketData.get(ws);
           if (!info) return;
-          const { key, stationState, clientVersion } = payload;
+          const { key, stationState, requestId } = payload;
+          const clientVersion = stationState?.clientVersion;
           const room = rooms[info.roomId];
           if (!room) return;
 
+          // RequestId dedup: if we already processed this exact requestId, skip
+          if (requestId && room.processedRequestIds.has(requestId)) {
+            console.log(`[WS][SERVER] Duplicate requestId ${requestId} ignored for station ${key} by ${info.playerId}`);
+            // Still send current state back so client reconciles
+            const correctState = room.stationsState[key] || {};
+            ws.send(JSON.stringify({
+              type: 'STATION_STATE_SYNC',
+              payload: { key, stationState: { ...correctState, serverVersion: room.stationVersions[key] || 0 } }
+            }));
+            return;
+          }
+          if (requestId) {
+            room.processedRequestIds.add(requestId);
+            // Prevent memory leak: cap at 500 requestIds per room
+            if (room.processedRequestIds.size > 500) {
+              const arr = Array.from(room.processedRequestIds);
+              room.processedRequestIds = new Set(arr.slice(-250));
+            }
+          }
+
           // Version-based conflict detection: reject stale updates
+          // BUT bypass if the sender holds the station lock — lock guarantees exclusive access
           const currentVersion = room.stationVersions[key] || 0;
-          if (clientVersion !== undefined && clientVersion < currentVersion) {
+          const lockId = `${info.roomId}:${key}`;
+          const heldLock = stationLocks.get(lockId);
+          const senderHasLock = heldLock && heldLock.playerId === info.playerId;
+          if (!senderHasLock && clientVersion !== undefined && clientVersion < currentVersion) {
             // This update is based on an old version — reject and send correct state back
             const correctState = room.stationsState[key] || {};
             ws.send(JSON.stringify({
               type: 'STATION_CONFLICT',
               payload: { key, correctState, serverVersion: currentVersion }
             }));
-            console.log(`[WS] Stale v${clientVersion} update rejected for station ${key} (server is v${currentVersion}) by ${info.playerId}`);
+            console.log(`[WS][SERVER] Stale v${clientVersion} update rejected for station ${key} (server is v${currentVersion}) by ${info.playerId}`);
             return;
           }
 
@@ -470,15 +536,105 @@ wss.on('connection', (ws: WebSocket) => {
           room.stationVersions[key] = newVersion;
           stationState.serverVersion = newVersion;
 
+          // Increment global state version
+          room.globalStateVersion++;
+
           // Auto-release lock
           releaseStationLock(info.roomId, key, info.playerId);
 
           room.stationsState[key] = stationState;
+          // Broadcast to ALL players including sender for reconciliation
           broadcastToRoom(info.roomId, {
             type: 'STATION_STATE_SYNC',
-            payload: { key, stationState }
-          }, ws);
-          console.log(`[WS] UPDATE_STATION_STATE accepted for ${key} by ${info.playerId} (v${currentVersion}→v${newVersion}), heldItem: ${stationState.heldItem?.type || 'null'}`);
+            payload: { key, stationState, stateVersion: room.globalStateVersion }
+          });
+          console.log(`[WS][SERVER] UPDATE_STATION_STATE accepted for ${key} by ${info.playerId} (v${currentVersion}→v${newVersion}, global v${room.globalStateVersion}), heldItem: ${stationState.heldItem?.type || 'null'}, requestId: ${requestId || 'none'}`);
+          break;
+        }
+
+        case 'STATION_ACTION': {
+          const info = socketData.get(ws);
+          if (!info) return;
+          const room = rooms[info.roomId];
+          if (!room) return;
+
+          const { action, stationKey, item, requestId } = payload;
+
+          // RequestId dedup
+          if (requestId && room.processedRequestIds.has(requestId)) {
+            console.log(`[WS][SERVER] Duplicate STATION_ACTION requestId ${requestId} ignored`);
+            return;
+          }
+          if (requestId) {
+            room.processedRequestIds.add(requestId);
+            if (room.processedRequestIds.size > 500) {
+              const arr = Array.from(room.processedRequestIds);
+              room.processedRequestIds = new Set(arr.slice(-250));
+            }
+          }
+
+          const currentStation = room.stationsState[stationKey];
+          if (!currentStation) {
+            ws.send(JSON.stringify({
+              type: 'STATION_ACTION_RESULT',
+              payload: { requestId, success: false, reason: 'station_not_found', stationKey }
+            }));
+            return;
+          }
+
+          let success = false;
+          let newStationState = { ...currentStation };
+
+          if (action === 'TAKE') {
+            // Take item from station
+            if (currentStation.heldItem && !currentStation.lockedByOther) {
+              newStationState.heldItem = null;
+              newStationState.progress = 0;
+              success = true;
+            }
+          } else if (action === 'PLACE') {
+            // Place item on station (station must be empty)
+            if (!currentStation.heldItem && item) {
+              newStationState.heldItem = item;
+              newStationState.progress = 0;
+              success = true;
+            }
+          } else if (action === 'SWAP') {
+            // Swap held item with station item
+            if (item !== undefined) {
+              const oldItem = currentStation.heldItem;
+              newStationState.heldItem = item || null;
+              success = true;
+              // Return the old item to the player via the result
+            }
+          }
+
+          if (success) {
+            const newVersion = (room.stationVersions[stationKey] || 0) + 1;
+            room.stationVersions[stationKey] = newVersion;
+            room.globalStateVersion++;
+            newStationState.serverVersion = newVersion;
+            newStationState.lastUpdated = Date.now();
+            room.stationsState[stationKey] = newStationState;
+
+            broadcastToRoom(info.roomId, {
+              type: 'STATION_STATE_SYNC',
+              payload: { key: stationKey, stationState: newStationState, stateVersion: room.globalStateVersion }
+            });
+
+            ws.send(JSON.stringify({
+              type: 'STATION_ACTION_RESULT',
+              payload: { requestId, success: true, stationKey, stationState: newStationState, stateVersion: room.globalStateVersion }
+            }));
+
+            console.log(`[WS][SERVER] STATION_ACTION ${action} accepted for ${stationKey} by ${info.playerId} (v${newVersion}), requestId: ${requestId || 'none'}`);
+          } else {
+            ws.send(JSON.stringify({
+              type: 'STATION_ACTION_RESULT',
+              payload: { requestId, success: false, reason: 'action_invalid', stationKey, stationState: newStationState }
+            }));
+            console.log(`[WS][SERVER] STATION_ACTION ${action} rejected for ${stationKey} by ${info.playerId}, reason: invalid state`);
+          }
           break;
         }
 
